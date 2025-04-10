@@ -153,6 +153,52 @@ void checkIOWaitingQueue(queue<IOWaitEntry> &ioWaitQueue, int &globalClock, queu
     }
     ioWaitQueue = temp;
 }
+
+void copyProcessToMemory(int* processLogicalMemory,int totalLogicalSize, int* PCB, int* mainMemory){
+
+        int segmentTableSize = PCB[0];
+        int numSegments = segmentTableSize / 2;
+        
+        int logicalIndex = 0;
+
+        for(int i = 0; i < numSegments; i++){
+            int start = PCB[1 + i * 2];
+            int length = PCB[1 + i * 2 + 1];
+
+            for(int j = 0; j < length && logicalIndex < totalLogicalSize; j++){
+                mainMemory[start + j] = processLogicalMemory[logicalIndex];
+                logicalIndex++;
+            }
+        }
+
+        if (logicalIndex < totalLogicalSize) {
+            cout << "Error: not enough space in allocated segments to hold process." <<
+            endl;
+            }
+}
+
+
+int translateLogicalToPhysical(int logicalAddress, int* PCB){
+    int segmentTableSize = PCB[0];
+    int numSegments = segmentTableSize / 2;
+    int remaining = logicalAddress;
+    for(int i = 0; i < numSegments; i++){
+        int start = PCB[1 + i * 2];
+        int length = PCB[1 + i * 2 + 1];
+        if(remaining < length){
+            return start + remaining;
+        }
+        else{
+            remaining -= length;
+        }
+
+    }
+    cout << "Memory violation: address " << logicalAddress << " out of bounds." << endl;
+return -1;
+}
+
+
+
 // Function to load jobs into memory
 // This function checks if there is sufficient memory available
 // and loads the job into memory if possible
@@ -164,6 +210,7 @@ void loadJobsToMemory(queue<PCB> &newJobQueue, queue<int> &readyQueue, int *main
                       int maxMemory, list<memoryBlock> &memoryList)
 {
     int lastAddress = 0;
+    int N = 0;  
     while (!newJobQueue.empty())
     {
 
@@ -224,6 +271,24 @@ void loadJobsToMemory(queue<PCB> &newJobQueue, queue<int> &readyQueue, int *main
                         j += 2;
                     }
                 }
+
+
+                //TODO
+                //try to allocate multiple non contig blocks where total size is satisfied for the jobs requirement
+                //Coalesce adjacent blocks if possible
+                //if avaliable
+                //Allocate block of at least  13 ints to hold segment table
+                //Allocate segments for data
+                //Fill segment table and complete pcb fields
+                //Copy contents of PCB (segmentTable + metadata + instructions + data) into allocated segments as per layout
+                //PCB and its segment table and fields may span across many phys memory blocks(segments) as indicated in segment table
+                //Move the job to readyqueue
+
+                //though
+                //if memory is not sufficient (total or segment table)
+                //leave the job in newJobQueue  
+
+
 
                 // Load data
                 j = 0;
